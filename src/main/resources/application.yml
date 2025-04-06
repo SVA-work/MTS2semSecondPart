@@ -1,3 +1,14 @@
 datastax-java-driver:
   basic:
     contact-points: 127.0.0.1:9042
+
+spring:
+  kafka:
+    bootstrap-servers: localhost:29093
+    consumer:
+      group-id: your-topic-name-group
+      enable-auto-commit: false
+    listener:
+      ack-mode: manual_immediate
+
+topic-to-consume-message: your-topic-name

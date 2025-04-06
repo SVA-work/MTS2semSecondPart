@@ -1,13 +1,14 @@
 package service;
 
+import app.service.UserAuditService;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
-import dto.RequestAddUserAudit;
-import dto.RequestReadUserAudit;
-import dto.ResponseReadUserAudit;
+import app.dto.RequestAddUserAudit;
+import app.dto.RequestReadUserAudit;
+import app.dto.ResponseReadUserAudit;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.aggregator.ArgumentAccessException;
 import org.mockito.Mockito;

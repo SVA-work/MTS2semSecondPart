@@ -1,11 +1,13 @@
-package dto;
+package app.dto;
 
-import entity.UserAudit;
+import app.entity.UserAudit;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.util.List;
 
 @Data
+@AllArgsConstructor
 public class ResponseReadUserAudit {
 
   private List<UserAudit> allUserAudits;
