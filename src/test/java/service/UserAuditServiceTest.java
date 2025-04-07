@@ -42,8 +42,7 @@ class UserAuditServiceTest {
         anyString()
     )).thenReturn(boundStatement);
 
-    UserAuditService service = new UserAuditService();
-    service.session = session;
+    UserAuditService service = new UserAuditService(session);
 
     RequestAddUserAudit request = new RequestAddUserAudit(
         UUID.randomUUID(),
@@ -63,8 +62,13 @@ class UserAuditServiceTest {
     when(session.prepare(anyString()))
         .thenThrow(new ArgumentAccessException("Invalid argument"));
 
-    UserAuditService service = new UserAuditService();
-    service.session = session;
+    UserAuditService service = null;
+    try {
+      service = new UserAuditService(session);
+    } catch (ArgumentAccessException e) {
+      assert true;
+      return;
+    }
 
     RequestAddUserAudit request = new RequestAddUserAudit(
         null,
@@ -73,7 +77,8 @@ class UserAuditServiceTest {
         null
     );
 
-    assertThrows(ArgumentAccessException.class, () -> service.insertUserAction(request));
+    UserAuditService finalService = service;
+    assertThrows(ArgumentAccessException.class, () -> finalService.insertUserAction(request));
   }
 
 
@@ -97,8 +102,7 @@ class UserAuditServiceTest {
     when(row.getString("event_type")).thenReturn("LOGIN");
     when(row.getString("event_details")).thenReturn("User logged in");
 
-    UserAuditService service = new UserAuditService();
-    service.session = session;
+    UserAuditService service = new UserAuditService(session);
 
     RequestReadUserAudit request = new RequestReadUserAudit(userId);
 
@@ -120,8 +124,7 @@ class UserAuditServiceTest {
     when(session.execute(boundStatement)).thenReturn(resultSet);
     when(resultSet.all()).thenReturn(Collections.emptyList());
 
-    UserAuditService service = new UserAuditService();
-    service.session = session;
+    UserAuditService service = new UserAuditService(session);
 
     RequestReadUserAudit request = new RequestReadUserAudit(UUID.randomUUID());
     ResponseReadUserAudit response = service.readUserAction(request);
