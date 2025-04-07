@@ -1,69 +1,85 @@
 package app.kafka;
 
-
+import app.dto.RequestAddUserAudit;
 import app.entity.UserAudit;
-import io.netty.channel.ChannelOutboundBuffer;
+import app.service.UserAuditService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.testcontainers.containers.KafkaContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
-import org.testcontainers.utility.DockerImageName;
+import org.springframework.kafka.annotation.EnableKafka;
+import org.springframework.kafka.test.context.EmbeddedKafka;
+import org.springframework.test.annotation.DirtiesContext;
 
-import java.time.Duration;
+import java.time.Instant;
+import java.util.UUID;
 
-import static org.awaitility.Awaitility.await;
-import static org.mockito.Mockito.times;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
-@SpringBootTest(
-    classes = {KafkaConsumerService.class},
-    properties = {
-        "topic-to-consume-message=your-test-topic",
-        "spring.kafka.consumer.group-id=some-consumer-group"
-    }
-)
-@Import({KafkaAutoConfiguration.class, KafkaConsumerServiceTest.ObjectMapperTestConfig.class})
-@Testcontainers
+@SpringBootTest
+@EnableKafka
+@EmbeddedKafka(partitions = 1, topics = "test-topic")
+@DirtiesContext
 class KafkaConsumerServiceTest {
 
   @TestConfiguration
-  static class ObjectMapperTestConfig {
+  static class TestConfig {
     @Bean
     public ObjectMapper objectMapper() {
-      return new ObjectMapper();
+      return new ObjectMapper()
+          .registerModule(new JavaTimeModule()); // Register Java 8 Time module
+    }
+
+    @Bean
+    public UserAuditService userAuditService() {
+      return mock(UserAuditService.class);
     }
   }
 
-  @Container
-  @ServiceConnection
-  public static final KafkaContainer KAFKA = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.4.0"));
-
-  @MockBean
-  private ChannelOutboundBuffer.MessageProcessor messageProcessor;
   @Autowired
-  private KafkaTemplate<String, String> kafkaTemplate;
+  private KafkaConsumerService kafkaConsumerService;
+
   @Autowired
   private ObjectMapper objectMapper;
 
-  @Test
-  void shouldSendMessageToKafkaSuccessfully() {
-    kafkaTemplate.send("some-test-topic", String.valueOf(new UserAudit()));
+  @MockBean
+  private UserAuditService userAuditService;
 
-    await().atMost(Duration.ofSeconds(5))
-        .pollDelay(Duration.ofSeconds(1))
-        .untilAsserted(() -> Mockito.verify(
-                messageProcessor, times(1))
-            .processMessage(eq(new DtoMessage()))
-        );
+  @Test
+  void shouldConsumeAndProcessValidMessageSuccessfully() throws JsonProcessingException {
+    // Arrange
+    UserAudit testAudit = new UserAudit();
+    testAudit.setUuid(UUID.randomUUID());
+    testAudit.setTime(Instant.now());
+    testAudit.setEventType("LOGIN");
+    testAudit.setEventDetails("User logged in");
+
+    String message = objectMapper.writeValueAsString(testAudit);
+
+    // Act
+    kafkaConsumerService.consumeMessage(message, null);
+
+    // Assert
+    verify(userAuditService, times(1))
+        .insertUserAction(any(RequestAddUserAudit.class));
+  }
+
+  @Test
+  void shouldHandleInvalidMessageGracefully() {
+    // Arrange
+    String invalidMessage = "invalid-json-message";
+
+    // Act
+    kafkaConsumerService.consumeMessage(invalidMessage, null);
+
+    // Assert
+    verify(userAuditService, never())
+        .insertUserAction(any(RequestAddUserAudit.class));
   }
 }
