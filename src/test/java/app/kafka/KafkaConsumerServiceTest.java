@@ -1,6 +1,5 @@
 package app.kafka;
 
-import app.dto.RequestAddUserAudit;
 import app.entity.UserAudit;
 import app.service.UserAuditService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -33,7 +32,7 @@ class KafkaConsumerServiceTest {
     @Bean
     public ObjectMapper objectMapper() {
       return new ObjectMapper()
-          .registerModule(new JavaTimeModule()); // Register Java 8 Time module
+          .registerModule(new JavaTimeModule());
     }
 
     @Bean
@@ -53,7 +52,6 @@ class KafkaConsumerServiceTest {
 
   @Test
   void shouldConsumeAndProcessValidMessageSuccessfully() throws JsonProcessingException {
-    // Arrange
     UserAudit testAudit = new UserAudit();
     testAudit.setUuid(UUID.randomUUID());
     testAudit.setTime(Instant.now());
@@ -62,24 +60,19 @@ class KafkaConsumerServiceTest {
 
     String message = objectMapper.writeValueAsString(testAudit);
 
-    // Act
     kafkaConsumerService.consumeMessage(message, null);
 
-    // Assert
     verify(userAuditService, times(1))
-        .insertUserAction(any(RequestAddUserAudit.class));
+        .insertUserAction(any(UserAudit.class));
   }
 
   @Test
   void shouldHandleInvalidMessageGracefully() {
-    // Arrange
     String invalidMessage = "invalid-json-message";
 
-    // Act
     kafkaConsumerService.consumeMessage(invalidMessage, null);
 
-    // Assert
     verify(userAuditService, never())
-        .insertUserAction(any(RequestAddUserAudit.class));
+        .insertUserAction(any(UserAudit.class));
   }
 }

@@ -1,8 +1,6 @@
 package app.service;
 
-import app.dto.RequestAddUserAudit;
 import app.dto.RequestReadUserAudit;
-import app.dto.ResponseReadUserAudit;
 import app.entity.UserAudit;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
@@ -35,21 +33,21 @@ public class UserAuditService {
     );
   }
 
-  public void insertUserAction(RequestAddUserAudit request) {
+  public void insertUserAction(UserAudit request) {
     BoundStatement boundStatement = insertStatement.bind(
         request.getUuid(),
         request.getTime(),
-        request.getEvent_type(),
-        request.getEvent_details()
+        request.getEventType(),
+        request.getEventDetails()
     );
     session.execute(boundStatement);
   }
 
-  public ResponseReadUserAudit readUserAction(RequestReadUserAudit request) {
+  public List<UserAudit> readUserAction(RequestReadUserAudit request) {
     BoundStatement boundStatement = selectStatement.bind(request.getUuid());
     ResultSet result = session.execute(boundStatement);
 
-    List<UserAudit> audits = result.all().stream()
+    return result.all().stream()
         .map(row -> new UserAudit(
             row.getUuid("user_id"),
             row.getInstant("event_time"),
@@ -57,7 +55,5 @@ public class UserAuditService {
             row.getString("event_details")
         ))
         .collect(Collectors.toList());
-
-    return new ResponseReadUserAudit(audits);
   }
 }

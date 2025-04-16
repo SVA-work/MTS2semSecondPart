@@ -1,14 +1,13 @@
 package service;
 
+import app.dto.RequestReadUserAudit;
+import app.entity.UserAudit;
 import app.service.UserAuditService;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
-import app.dto.RequestAddUserAudit;
-import app.dto.RequestReadUserAudit;
-import app.dto.ResponseReadUserAudit;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.aggregator.ArgumentAccessException;
 import org.mockito.Mockito;
@@ -44,7 +43,7 @@ class UserAuditServiceTest {
 
     UserAuditService service = new UserAuditService(session);
 
-    RequestAddUserAudit request = new RequestAddUserAudit(
+    UserAudit request = new UserAudit(
         UUID.randomUUID(),
         Instant.now(),
         "LOGIN",
@@ -70,7 +69,7 @@ class UserAuditServiceTest {
       return;
     }
 
-    RequestAddUserAudit request = new RequestAddUserAudit(
+    UserAudit request = new UserAudit(
         null,
         null,
         null,
@@ -106,10 +105,10 @@ class UserAuditServiceTest {
 
     RequestReadUserAudit request = new RequestReadUserAudit(userId);
 
-    ResponseReadUserAudit response = service.readUserAction(request);
+    List<UserAudit> response = service.readUserAction(request);
 
-    assertEquals(1, response.getAllUserAudits().size());
-    assertEquals(userId, response.getAllUserAudits().get(0).getUuid());
+    assertEquals(1, response.size());
+    assertEquals(userId, response.get(0).getUuid());
   }
 
   @Test
@@ -127,9 +126,9 @@ class UserAuditServiceTest {
     UserAuditService service = new UserAuditService(session);
 
     RequestReadUserAudit request = new RequestReadUserAudit(UUID.randomUUID());
-    ResponseReadUserAudit response = service.readUserAction(request);
+    List<UserAudit> response = service.readUserAction(request);
 
     assertNotNull(response);
-    assertTrue(response.getAllUserAudits().isEmpty());
+    assertTrue(response.isEmpty());
   }
 }

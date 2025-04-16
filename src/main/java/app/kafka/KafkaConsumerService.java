@@ -2,7 +2,6 @@ package app.kafka;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import app.dto.RequestAddUserAudit;
 import app.entity.UserAudit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,16 +32,9 @@ public class KafkaConsumerService {
       UserAudit userAudit = objectMapper.readValue(message, UserAudit.class);
       LOGGER.info("Received audit message: {}", userAudit);
 
-      RequestAddUserAudit auditRequest = new RequestAddUserAudit(
-          userAudit.getUuid() != null ? userAudit.getUuid() : UUID.randomUUID(),
-          userAudit.getTime() != null ? userAudit.getTime() : Instant.now(),
-          userAudit.getEventType(),
-          "Kafka event: " + userAudit.getEventDetails() + " with ID: " + userAudit.getUuid()
-      );
+      userAuditService.insertUserAction(userAudit);
 
-      userAuditService.insertUserAction(auditRequest);
-
-      LOGGER.info("Audit record saved successfully for user: {}", auditRequest.getUuid());
+      LOGGER.info("Audit record saved successfully for user: {}", userAudit.getUuid());
 
       acknowledgment.acknowledge();
     } catch (JsonProcessingException e) {
